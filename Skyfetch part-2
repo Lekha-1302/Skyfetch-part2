@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>SkyFetch Weather Dashboard</title>
+<link rel="stylesheet" href="style.css">
+<script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+</head>
+
+<body>
+
+<div class="container">
+
+<h1>🌤 SkyFetch Weather Dashboard</h1>
+
+<div class="search-box">
+<input type="text" id="city-input" placeholder="Enter city name">
+<button id="search-btn">Search</button>
+</div>
+
+<div id="weather-display"></div>
+
+</div>
+
+<script src="app.js"></script>
+
+</body>
+</html>
+[8:46 am, 10/03/2026] Ragav 💝: body{
+font-family: Arial;
+background: linear-gradient(135deg,#667eea,#764ba2);
+display:flex;
+justify-content:center;
+align-items:center;
+height:100vh;
+margin:0;
+}
+
+.container{
+background:white;
+padding:30px;
+border-radius:12px;
+width:600px;
+text-align:center;
+}
+
+.search-box{
+margin-bottom:20px;
+}
+
+input{
+padding:10px;
+width:60%;
+border-radius:6px;
+border:1px solid #ccc;
+}
+
+button{
+padding:10px 20px;
+border:none;
+background:#667eea;
+color:white;
+border-radius:6px;
+cursor:pointer;
+}
+
+.weather-info{
+margin-top:20px;
+}
+
+.forecast-section{
+margin-top:30px;
+border-top:2px solid #eee;
+padding-top:20px;
+}
+
+.forecast-container{
+display:grid;
+grid-template-columns:repeat(5,1fr);
+gap:10px;
+}
+
+.forecast-card{
+background:#f5f5f5;
+padding:15px;
+border-radius:10px;
+transit…
+[8:46 am, 10/03/2026] Ragav 💝: function WeatherApp(apiKey){
+
+this.apiKey = apiKey;
+
+this.apiUrl = "https://api.openweathermap.org/data/2.5/weather";
+this.forecastUrl = "https://api.openweathermap.org/data/2.5/forecast";
+
+this.searchBtn = document.getElementById("search-btn");
+this.cityInput = document.getElementById("city-input");
+this.weatherDisplay = document.getElementById("weather-display");
+
+this.init();
+}
+
+WeatherApp.prototype.init = function(){
+
+this.searchBtn.addEventListener(
+"click",
+this.handleSearch.bind(this)
+);
+
+this.cityInput.addEventListener("keypress",(e)=>{
+if(e.key==="Enter"){
+this.handleSearch();
+}
+});
+
+this.showWelcome();
+};
+
+WeatherApp.prototype.showWelcome = function(){
+
+this.weatherDisplay.innerHTML=
+"<p>Enter a city to check weather</p>";
+
+};
+
+WeatherApp.prototype.handleSearch = function(){
+
+const city=this.cityInput.value.trim();
+
+if(!city){
+this.showError("Please enter a city");
+return;
+}
+
+this.getWeather(city);
+};
+
+WeatherApp.prototype.showLoading=function(){
+
+this.weatherDisplay.innerHTML=
+"<div class='loading'>Loading...</div>";
+
+};
+
+WeatherApp.prototype.showError=function(message){
+
+this.weatherDisplay.innerHTML=
+"<div class='error'>"+message+"</div>";
+
+};
+
+WeatherApp.prototype.getForecast = async function(city){
+
+const url=
+${this.forecastUrl}?q=${city}&appid=${this.apiKey}&units=metric;
+
+const response=await axios.get(url);
+
+return response.data;
+
+};
+
+WeatherApp.prototype.getWeather = async function(city){
+
+this.showLoading();
+
+try{
+
+const currentURL=
+${this.apiUrl}?q=${city}&appid=${this.apiKey}&units=metric;
+
+const [weather,forecast]=await Promise.all([
+axios.get(currentURL),
+this.getForecast(city)
+]);
+
+this.displayWeather(weather.data);
+
+this.displayForecast(forecast);
+
+}catch(error){
+
+this.showError("City not found");
+
+}
+
+};
+
+WeatherApp.prototype.displayWeather=function(data){
+
+const icon=data.weather[0].icon;
+
+const iconUrl=
+https://openweathermap.org/img/wn/${icon}@2x.png;
+
+const html=`
+
+<div class="weather-info">
+
+<h2>${data.name}</h2>
+
+<img src="${iconUrl}">
+
+<h1>${Math.round(data.main.temp)}°C</h1>
+
+<p>${data.weather[0].description}</p>
+
+</div>
+
+`;
+
+this.weatherDisplay.innerHTML=html;
+
+};
+
+WeatherApp.prototype.processForecastData=function(data){
+
+const filtered=data.list.filter(item=>{
+return item.dt_txt.includes("12:00:00");
+});
+
+return filtered.slice(0,5);
+};
+
+WeatherApp.prototype.displayForecast=function(data){
+
+const days=this.processForecastData(data);
+
+const cards=days.map(day=>{
+
+const date=new Date(day.dt*1000);
+
+const name=date.toLocaleDateString("en-US",{weekday:"short"});
+
+const icon=day.weather[0].icon;
+
+const iconUrl=
+https://openweathermap.org/img/wn/${icon}@2x.png;
+
+return`
+
+<div class="forecast-card">
+
+<h4>${name}</h4>
+
+<img src="${iconUrl}">
+
+<p>${Math.round(day.main.temp)}°C</p>
+
+<p>${day.weather[0].description}</p>
+
+</div>
+
+`;
+
+}).join("");
+
+const section=`
+
+<div class="forecast-section">
+
+<h3>5-Day Forecast</h3>
+
+<div class="forecast-container">
+
+${cards}
+
+</div>
+
+</div>
+
+`;
+
+this.weatherDisplay.innerHTML+=section;
+
+};
+
+const app=new WeatherApp("YOUR_API_KEY");
